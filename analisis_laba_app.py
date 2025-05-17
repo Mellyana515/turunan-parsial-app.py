@@ -1,49 +1,51 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-st.title("Aplikasi Analisis Laba Perusahaan")
-st.markdown("Fungsi laba: **f(x, y) = xy - 0.1x² - 0.2y²**")
+# Judul aplikasi
+st.title("Analisis Laba Menggunakan Turunan Parsial")
+st.subheader("Fungsi: f(x, y) = xy - 0.1x² - 0.2y²")
 
-# Input dari user
-x_val = st.slider("Harga jual produk (x)", 0.0, 50.0, 10.0)
-y_val = st.slider("Jumlah produk terjual (y)", 0.0, 50.0, 10.0)
+# Input dari pengguna
+x = st.slider("Harga per Unit (x)", min_value=0.0, max_value=50.0, value=20.0, step=1.0)
+y = st.slider("Jumlah Terjual (y)", min_value=0.0, max_value=50.0, value=30.0, step=1.0)
 
 # Fungsi laba dan turunannya
-def f(x, y):
+def laba(x, y):
     return x * y - 0.1 * x**2 - 0.2 * y**2
 
-def df_dx(x, y):
+def turunan_x(x, y):
     return y - 0.2 * x
 
-def df_dy(x, y):
+def turunan_y(x, y):
     return x - 0.4 * y
 
-# Hasil evaluasi
-z_val = f(x_val, y_val)
-partial_x = df_dx(x_val, y_val)
-partial_y = df_dy(x_val, y_val)
+# Perhitungan
+hasil_laba = laba(x, y)
+df_dx = turunan_x(x, y)
+df_dy = turunan_y(x, y)
 
-st.write(f"Nilai fungsi laba f(x, y): **{z_val:.2f}**")
-st.write(f"Turunan parsial terhadap x (∂f/∂x): **{partial_x:.2f}**")
-st.write(f"Turunan parsial terhadap y (∂f/∂y): **{partial_y:.2f}**")
+# Tampilkan hasil
+st.write(f"**Laba f({x}, {y}) = {hasil_laba:.2f}**")
+st.write(f"Turunan parsial terhadap x (∂f/∂x) = {df_dx:.2f}")
+st.write(f"Turunan parsial terhadap y (∂f/∂y) = {df_dy:.2f}")
 
-# Grafik 3D permukaan fungsi
-st.subheader("Grafik Permukaan Laba")
-
+# Visualisasi grafik 3D
+st.subheader("Visualisasi Permukaan Laba")
 fig = plt.figure(figsize=(8, 5))
 ax = fig.add_subplot(111, projection='3d')
 
-X = np.linspace(0, 50, 50)
-Y = np.linspace(0, 50, 50)
-X, Y = np.meshgrid(X, Y)
-Z = f(X, Y)
+# Grid nilai
+x_vals = np.linspace(0, 50, 50)
+y_vals = np.linspace(0, 50, 50)
+X, Y = np.meshgrid(x_vals, y_vals)
+Z = laba(X, Y)
 
+# Plot permukaan
 ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
-ax.set_xlabel("x (Harga jual)")
-ax.set_ylabel("y (Jumlah terjual)")
+ax.set_xlabel("Harga per Unit (x)")
+ax.set_ylabel("Jumlah Terjual (y)")
 ax.set_zlabel("Laba f(x, y)")
-ax.set_title("Permukaan Fungsi Laba")
+ax.view_init(elev=30, azim=135)
 
 st.pyplot(fig)
