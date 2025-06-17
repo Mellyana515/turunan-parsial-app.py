@@ -50,49 +50,59 @@ if tab == "Produksi Ban (Optimasi)":
 
 # 2️⃣ EOQ (VERSI LENGKAP: grafik 3 kurva)
 elif tab == "Pengadaan Karet (EOQ)":
-    st.header("📦 Pengadaan Karet Mentah - EOQ")
+    st.header("📦 Pengadaan Karet Mentah - EOQ (Contoh Detail)")
 
-    st.markdown("Model ini digunakan untuk menentukan jumlah optimal pemesanan bahan baku karet (Economic Order Quantity).")
-    st.latex("EOQ = \\sqrt{\\frac{2DS}{H}}")
+    st.markdown("""
+    Economic Order Quantity (EOQ) membantu menentukan jumlah optimal pembelian bahan baku agar biaya total minimum.
+    
+    ### Rumus:
+    EOQ = √(2DS / H)
+    """)
 
-    D = st.number_input("Permintaan Tahunan (kg)", value=50000)
-    S = st.number_input("Biaya Pemesanan per Order (Rp)", value=250000)
-    H = st.number_input("Biaya Penyimpanan per Tahun (Rp/kg)", value=1000)
+    # Data contoh
+    D = 1000  # Permintaan tahunan (kg)
+    S = 100   # Biaya pemesanan per order (Rp)
+    H = 2     # Biaya penyimpanan per tahun (Rp/kg)
 
     EOQ = ((2 * D * S) / H) ** 0.5
     OC = (D / EOQ) * S
     HC = (EOQ / 2) * H
     TC = OC + HC
 
-    st.success(f"EOQ optimal: {EOQ:.2f} kg")
-    st.write(f"Total Biaya Tahunan Minimum: Rp {TC:,.0f}")
-    st.write(f"- Biaya Pemesanan (Ordering Cost): Rp {OC:,.0f}")
-    st.write(f"- Biaya Penyimpanan (Holding Cost): Rp {HC:,.0f}")
+    st.subheader("📌 Input Data:")
+    st.write(f"- Permintaan Tahunan (D): {D} kg")
+    st.write(f"- Biaya Pemesanan per Order (S): Rp {S}")
+    st.write(f"- Biaya Penyimpanan per Tahun (H): Rp {H}/kg")
 
-    Q = np.linspace(EOQ * 0.2, EOQ * 2, 300)
+    st.subheader("📈 Hasil Perhitungan:")
+    st.write(f"EOQ optimal = √((2×{D}×{S}) / {H}) = **{EOQ:.2f} kg**")
+    st.write(f"- Biaya Pemesanan: Rp {OC:.2f}")
+    st.write(f"- Biaya Penyimpanan: Rp {HC:.2f}")
+    st.write(f"- Total Biaya Tahunan: **Rp {TC:.2f}**")
+
+    # Grafik
+    Q = np.linspace(50, 600, 200)
     OC_curve = (D / Q) * S
     HC_curve = (Q / 2) * H
     TC_curve = OC_curve + HC_curve
 
     fig, ax = plt.subplots()
-    ax.plot(Q, TC_curve, label="Total Cost", color='blue', linewidth=2)
+    ax.plot(Q, TC_curve, label="Total Cost", color='blue')
     ax.plot(Q, OC_curve, label="Ordering Cost", color='green', linestyle='--')
     ax.plot(Q, HC_curve, label="Holding Cost", color='orange', linestyle='--')
 
     ax.axvline(EOQ, color='red', linestyle='--', label=f'EOQ = {EOQ:.0f}')
     ax.scatter([EOQ], [TC], color='red')
-    ax.annotate(f"EOQ\n{EOQ:.0f} kg\nRp {TC:,.0f}", 
+    ax.annotate(f"EOQ = {EOQ:.0f}\nBiaya Total ≈ Rp {TC:.0f}", 
                 (EOQ, TC),
-                textcoords="offset points",
-                xytext=(10, -40),
-                ha='left',
+                xytext=(10, -30), textcoords="offset points",
                 arrowprops=dict(arrowstyle="->", color='gray'))
 
-    ax.set_title("Kurva Biaya Pemesanan, Penyimpanan & Total Cost")
-    ax.set_xlabel("Q (Jumlah Pemesanan per Siklus)")
+    ax.set_xlabel("Jumlah Pemesanan (Q)")
     ax.set_ylabel("Biaya (Rp)")
-    ax.legend()
+    ax.set_title("Grafik EOQ: Total Cost, Ordering Cost, Holding Cost")
     ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend()
     st.pyplot(fig)
 
 # 3️⃣ Antrian Bengkel
