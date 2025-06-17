@@ -9,7 +9,10 @@ st.title("📊 Aplikasi Analisis Model Matematika untuk Industri Ban")
 
 with st.sidebar:
     tab = st.radio("📌 Pilih Studi Kasus:", [
-        "Produksi Ban (Optimasi)", "Pengadaan Karet (EOQ)", "Antrian Bengkel", "Analisis Harga (Turunan Parsial)"
+        "Produksi Ban (Optimasi)", 
+        "Pengadaan Karet (EOQ)", 
+        "Antrian Bengkel", 
+        "Analisis Harga (Turunan Parsial)"
     ])
 
 # 1️⃣ Optimasi Produksi
@@ -44,7 +47,8 @@ if tab == "Produksi Ban (Optimasi)":
         ax.set_ylabel("Ban Truk (y)")
         ax.legend()
         st.pyplot(fig)
-# 2️⃣ EOQ
+
+# 2️⃣ EOQ (diperbaiki)
 elif tab == "Pengadaan Karet (EOQ)":
     st.header("📦 Pengadaan Karet Mentah - EOQ")
 
@@ -61,16 +65,19 @@ elif tab == "Pengadaan Karet (EOQ)":
     st.success(f"EOQ: {EOQ:.2f} kg per pembelian")
     st.write(f"Total biaya tahunan minimum: Rp {TC:,.0f}")
 
-    Q = np.linspace(1, EOQ * 2, 100)
+    Q = np.linspace(1, EOQ * 2, 200)
     TC_curve = (D / Q) * S + (Q / 2) * H
+
     fig, ax = plt.subplots()
-    ax.plot(Q, TC_curve, label="Total Cost")
-    ax.axvline(EOQ, color='red', linestyle='--', label='EOQ')
+    ax.plot(Q, TC_curve, label="Total Cost", color='blue')
+    ax.axvline(EOQ, color='red', linestyle='--', label=f'EOQ = {EOQ:.0f}')
     ax.set_title("Kurva Total Cost terhadap Jumlah Pemesanan")
     ax.set_xlabel("Q (Jumlah Pembelian)")
     ax.set_ylabel("Total Cost")
+    ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend()
     st.pyplot(fig)
+
 # 3️⃣ Antrian Bengkel
 elif tab == "Antrian Bengkel":
     st.header("⏱️ Antrian Pelanggan di Bengkel Ban - M/M/1")
@@ -102,6 +109,7 @@ elif tab == "Antrian Bengkel":
         ax.bar(["L", "Lq", "W", "Wq"], [L, Lq, W, Wq], color=['blue', 'orange', 'green', 'red'])
         ax.set_title("Grafik Kinerja Antrian Bengkel")
         st.pyplot(fig)
+
 # 4️⃣ Turunan Parsial
 elif tab == "Analisis Harga (Turunan Parsial)":
     st.header("📈 Analisis Harga Ban terhadap Laba - Turunan Parsial")
