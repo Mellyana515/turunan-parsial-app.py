@@ -48,59 +48,57 @@ if tab == "Produksi Ban (Optimasi)":
         ax.legend()
         st.pyplot(fig)
 
-# 2️⃣ EOQ (VERSI LENGKAP: grafik 3 kurva)
+# 2️⃣ EOQ
 elif tab == "Pengadaan Karet (EOQ)":
-    st.header("📦 Pengadaan Karet Mentah - EOQ (Contoh Detail)")
+    st.header("📦 Pengadaan Karet Mentah - EOQ")
 
     st.markdown("""
-    Economic Order Quantity (EOQ) membantu menentukan jumlah optimal pembelian bahan baku agar biaya total minimum.
+    Economic Order Quantity (EOQ) adalah metode untuk menentukan jumlah pemesanan bahan baku agar total biaya tahunan minimum.
     
     ### Rumus:
     EOQ = √(2DS / H)
     """)
 
-    # Data contoh
-    D = 1000  # Permintaan tahunan (kg)
-    S = 100   # Biaya pemesanan per order (Rp)
-    H = 2     # Biaya penyimpanan per tahun (Rp/kg)
+    D = st.number_input("Permintaan Tahunan (kg)", value=50000)
+    S = st.number_input("Biaya Pemesanan per Order (Rp)", value=250000)
+    H = st.number_input("Biaya Penyimpanan per Tahun (Rp/kg)", value=1000)
 
     EOQ = ((2 * D * S) / H) ** 0.5
     OC = (D / EOQ) * S
     HC = (EOQ / 2) * H
     TC = OC + HC
 
-    st.subheader("📌 Input Data:")
-    st.write(f"- Permintaan Tahunan (D): {D} kg")
-    st.write(f"- Biaya Pemesanan per Order (S): Rp {S}")
-    st.write(f"- Biaya Penyimpanan per Tahun (H): Rp {H}/kg")
-
     st.subheader("📈 Hasil Perhitungan:")
-    st.write(f"EOQ optimal = √((2×{D}×{S}) / {H}) = **{EOQ:.2f} kg**")
-    st.write(f"- Biaya Pemesanan: Rp {OC:.2f}")
-    st.write(f"- Biaya Penyimpanan: Rp {HC:.2f}")
-    st.write(f"- Total Biaya Tahunan: **Rp {TC:.2f}**")
+    st.write(f"EOQ optimal: **{EOQ:.2f} kg**")
+    st.write(f"- Biaya Pemesanan: Rp {OC:,.0f}")
+    st.write(f"- Biaya Penyimpanan: Rp {HC:,.0f}")
+    st.write(f"- Total Biaya Tahunan: **Rp {TC:,.0f}**")
 
-    # Grafik
-    Q = np.linspace(50, 600, 200)
+    # Grafik dalam bentuk persentase agar tidak datar
+    Q = np.linspace(EOQ * 0.4, EOQ * 1.6, 300)
     OC_curve = (D / Q) * S
     HC_curve = (Q / 2) * H
     TC_curve = OC_curve + HC_curve
 
+    TC_min = TC_curve.min()
+    OC_curve_pct = (OC_curve / TC_min) * 100
+    HC_curve_pct = (HC_curve / TC_min) * 100
+    TC_curve_pct = (TC_curve / TC_min) * 100
+
     fig, ax = plt.subplots()
-    ax.plot(Q, TC_curve, label="Total Cost", color='blue')
-    ax.plot(Q, OC_curve, label="Ordering Cost", color='green', linestyle='--')
-    ax.plot(Q, HC_curve, label="Holding Cost", color='orange', linestyle='--')
-
+    ax.plot(Q, TC_curve_pct, label="Total Cost (%)", color='blue', linewidth=2)
+    ax.plot(Q, OC_curve_pct, label="Ordering Cost (%)", color='green', linestyle='--')
+    ax.plot(Q, HC_curve_pct, label="Holding Cost (%)", color='orange', linestyle='--')
     ax.axvline(EOQ, color='red', linestyle='--', label=f'EOQ = {EOQ:.0f}')
-    ax.scatter([EOQ], [TC], color='red')
-    ax.annotate(f"EOQ = {EOQ:.0f}\nBiaya Total ≈ Rp {TC:.0f}", 
-                (EOQ, TC),
-                xytext=(10, -30), textcoords="offset points",
+    ax.scatter([EOQ], [100], color='red')
+    ax.annotate(f"EOQ = {EOQ:.0f} kg\n100% Biaya Minimum",
+                (EOQ, 100),
+                xytext=(10, -30),
+                textcoords="offset points",
                 arrowprops=dict(arrowstyle="->", color='gray'))
-
-    ax.set_xlabel("Jumlah Pemesanan (Q)")
-    ax.set_ylabel("Biaya (Rp)")
-    ax.set_title("Grafik EOQ: Total Cost, Ordering Cost, Holding Cost")
+    ax.set_xlabel("Jumlah Pembelian (Q)")
+    ax.set_ylabel("Biaya (% dari minimum)")
+    ax.set_title("Kurva EOQ (Dalam Persentase agar Tampak Jelas)")
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend()
     st.pyplot(fig)
