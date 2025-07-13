@@ -1,6 +1,8 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.express as px
 from scipy.optimize import linprog
 
 # Konfigurasi halaman
@@ -11,38 +13,33 @@ st.markdown("""
 Aplikasi ini menyelesaikan masalah Linear Programming (LP) untuk menentukan jumlah produksi optimal **banner** dan **brosur** agar **keuntungan maksimal** tercapai berdasarkan keterbatasan sumber daya.
 """)
 
-# Input parameter (bisa dikembangkan agar dinamis)
-profit_x = 90000   # Banner
-profit_y = 20000   # Brosur
+# Parameter produksi dan keuntungan
+profit_x = 90000  # Banner
+profit_y = 20000  # Brosur
 
-# Kendala (kapasitas)
+# Kapasitas sumber daya
 max_mesin = 150
 max_bahan = 200
 max_tenaga = 200
 
-# Koefisien kendala
-# 3x + 0.1y ≤ 150 (Mesin)
-# 2x + 3y ≤ 200 (Bahan)
-# 2x + 0.2y ≤ 200 (Tenaga Kerja)
-
+# Matriks kendala
 A = [
     [1.0, 0.5],   # Mesin
-    [2.0, 2.0],   # Bahan
+    [2.0, 2.0],   # Bahan baku
     [2.0, 1.0]    # Tenaga kerja
 ]
-b = [150, 200, 200]
+b = [max_mesin, max_bahan, max_tenaga]
 
-# Koefisien fungsi objektif (dikalikan -1 untuk maks)
+# Fungsi objektif (negatif untuk maksimasi)
 c = [-profit_x, -profit_y]
 
-# Batasan variabel
+# Batas variabel
 x_bounds = (0, None)
 y_bounds = (0, None)
 
-# Optimasi
+# Optimasi Linear Programming
 res = linprog(c, A_ub=A, b_ub=b, bounds=[x_bounds, y_bounds], method="highs")
 
-# Hasil
 if res.success:
     x_opt = res.x[0]
     y_opt = res.x[1]
@@ -53,14 +50,14 @@ if res.success:
     st.write(f"**Jumlah Brosur (y):** {y_opt:.2f} unit")
     st.write(f"**Total Keuntungan Maksimum:** Rp {z_opt:,.0f}")
 
-    # Visualisasi Feasible Region
+    # Visualisasi Feasible Region (matplotlib)
     st.subheader("📊 Grafik Daerah Feasible & Titik Optimum")
     fig, ax = plt.subplots()
 
     x_vals = np.linspace(0, 100, 400)
-    y1 = (150 - 1.0 * x_vals) / 0.5  # Mesin
-    y2 = (200 - 2.0 * x_vals) / 2.0  # Bahan
-    y3 = (200 - 2.0 * x_vals) / 1.0  # Tenaga kerja
+    y1 = (max_mesin - 1.0 * x_vals) / 0.5  # Mesin
+    y2 = (max_bahan - 2.0 * x_vals) / 2.0  # Bahan
+    y3 = (max_tenaga - 2.0 * x_vals) / 1.0  # Tenaga kerja
 
     ax.plot(x_vals, y1, label="Mesin")
     ax.plot(x_vals, y2, label="Bahan Baku")
@@ -79,23 +76,41 @@ if res.success:
     ax.legend()
     st.pyplot(fig)
 
-    # Visualisasi Produksi Optimal
-    st.subheader("📦 Diagram Produksi Optimal")
-    st.bar_chart({"Produk": [x_opt, y_opt]}, labels={"x": "Produk", "y": "Jumlah"}, use_container_width=True)
+    # Visualisasi Produksi Optimal (Plotly)
+    st.subheader("📦 Diagram Produksi Optimal (Interaktif)")
+    df_prod = pd.DataFrame({
+        "Produk": ["Banner", "Brosur"],
+        "Jumlah Produksi": [x_opt, y_opt]
+    })
 
-    # Pemanfaatan Sumber Daya
+    fig_bar = px.bar(
+        df_prod,
+        x="Produk",
+        y="Jumlah Produksi",
+        color="Produk",
+        text="Jumlah Produksi",
+        title="Diagram Produksi Optimal",
+        labels={"Jumlah Produksi": "Unit"},
+        color_discrete_sequence=["#636EFA", "#EF553B"]
+    )
+
+    fig_bar.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+    fig_bar.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    # Pemanfaatan sumber daya
     st.subheader("🧰 Pemanfaatan Sumber Daya")
     waktu_mesin = 1.0 * x_opt + 0.5 * y_opt
     bahan_baku = 2.0 * x_opt + 2.0 * y_opt
     tenaga_kerja = 2.0 * x_opt + 1.0 * y_opt
 
-    st.write(f"- Total Waktu Mesin Digunakan: {waktu_mesin:.2f} jam / {max_mesin} jam")
-    st.write(f"- Total Bahan Baku Digunakan: {bahan_baku:.2f} unit / {max_bahan} unit")
-    st.write(f"- Total Tenaga Kerja Digunakan: {tenaga_kerja:.2f} jam / {max_tenaga} jam")
+    st.write(f"- Total Waktu Mesin: {waktu_mesin:.2f} jam / {max_mesin} jam")
+    st.write(f"- Total Bahan Baku: {bahan_baku:.2f} unit / {max_bahan} unit")
+    st.write(f"- Total Tenaga Kerja: {tenaga_kerja:.2f} jam / {max_tenaga} jam")
 
-    # Estimasi kebutuhan tenaga kerja
+    # Estimasi jumlah tenaga kerja
     st.subheader("👷 Estimasi Jumlah Tenaga Kerja")
-    jam_kerja_per_orang = 110  # asumsikan 110 jam/orang/bulan
+    jam_kerja_per_orang = 110
     kebutuhan_orang = np.ceil(tenaga_kerja / jam_kerja_per_orang)
     st.write(f"🧑‍🔧 Total jam kerja: {tenaga_kerja:.2f} jam → Dibutuhkan minimal **{int(kebutuhan_orang)} orang tenaga kerja**")
 
