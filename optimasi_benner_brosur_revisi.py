@@ -3,107 +3,101 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import linprog
 
-st.set_page_config(layout="centered")
-st.title("📦 Optimasi Produksi Banner dan Brosur (Input Manual + Jumlah Karyawan)")
+# Konfigurasi halaman
+st.set_page_config(page_title="Optimasi Produksi Banner & Brosur", layout="centered")
+st.title("📈 Optimasi Produksi Banner dan Brosur")
 
-st.markdown("Masukkan data produksi, sumber daya, dan jumlah karyawan untuk menentukan kombinasi produksi optimal dengan metode Linear Programming.")
+st.markdown("""
+Aplikasi ini menyelesaikan masalah Linear Programming (LP) untuk menentukan jumlah produksi optimal **banner** dan **brosur** agar **keuntungan maksimal** tercapai berdasarkan keterbatasan sumber daya.
+""")
 
-# ------------------------ INPUT ------------------------
-st.sidebar.header("📥 Parameter Produksi")
+# Input parameter (bisa dikembangkan agar dinamis)
+profit_x = 90000   # Banner
+profit_y = 20000   # Brosur
 
-# Keuntungan per unit
-profit_x = st.sidebar.number_input("Keuntungan per unit Banner (Rp)", value=90000)
-profit_y = st.sidebar.number_input("Keuntungan per unit Brosur (Rp)", value=20000)
+# Kendala (kapasitas)
+max_mesin = 150
+max_bahan = 200
+max_tenaga = 200
 
-# Biaya variabel
-cost_x = st.sidebar.number_input("Biaya per unit Banner (Rp)", value=35000)
-cost_y = st.sidebar.number_input("Biaya per unit Brosur (Rp)", value=10000)
+# Koefisien kendala
+# 3x + 0.1y ≤ 150 (Mesin)
+# 2x + 3y ≤ 200 (Bahan)
+# 2x + 0.2y ≤ 200 (Tenaga Kerja)
 
-# Biaya tetap mingguan
-fixed_cost = st.sidebar.number_input("Biaya Tetap Mingguan (Rp)", value=675000)
-
-# Jumlah karyawan & kapasitas kerja
-jumlah_karyawan = st.sidebar.number_input("Jumlah Karyawan", min_value=1, value=1)
-kapasitas_per_karyawan = st.sidebar.number_input("Jam kerja per karyawan per bulan", value=200)
-total_tenaga_kerja = jumlah_karyawan * kapasitas_per_karyawan
-
-# Kapasitas lain
-kap_mesin = st.sidebar.number_input("Kapasitas Mesin (jam/bulan)", value=150)
-kap_bahan = st.sidebar.number_input("Kapasitas Bahan Baku (unit/bulan)", value=200)
-
-# Konsumsi per unit
-m_x = st.sidebar.number_input("Jam Mesin per Banner", value=3.0)
-m_y = st.sidebar.number_input("Jam Mesin per Brosur", value=0.5)
-
-b_x = st.sidebar.number_input("Bahan Baku per Banner", value=2.0)
-b_y = st.sidebar.number_input("Bahan Baku per Brosur", value=2.0)
-
-t_x = st.sidebar.number_input("Jam Tenaga Kerja per Banner", value=2.0)
-t_y = st.sidebar.number_input("Jam Tenaga Kerja per Brosur", value=1.0)
-
-# ------------------------ LINEAR PROGRAMMING ------------------------
-c = [-profit_x, -profit_y]
 A = [
-    [m_x, m_y],       # Mesin
-    [b_x, b_y],       # Bahan
-    [t_x, t_y]        # Tenaga kerja
+    [1.0, 0.5],   # Mesin
+    [2.0, 2.0],   # Bahan
+    [2.0, 1.0]    # Tenaga kerja
 ]
-b = [kap_mesin, kap_bahan, total_tenaga_kerja]
-bounds = [(0, None), (0, None)]
+b = [150, 200, 200]
 
-res = linprog(c, A_ub=A, b_ub=b, bounds=bounds, method='highs')
+# Koefisien fungsi objektif (dikalikan -1 untuk maks)
+c = [-profit_x, -profit_y]
 
-# ------------------------ OUTPUT ------------------------
+# Batasan variabel
+x_bounds = (0, None)
+y_bounds = (0, None)
+
+# Optimasi
+res = linprog(c, A_ub=A, b_ub=b, bounds=[x_bounds, y_bounds], method="highs")
+
+# Hasil
 if res.success:
-    x_opt, y_opt = res.x
+    x_opt = res.x[0]
+    y_opt = res.x[1]
     z_opt = -res.fun
 
-    st.success("✅ Solusi optimal ditemukan!")
-    st.write(f"**Banner (x)**: `{x_opt:.2f}` unit")
-    st.write(f"**Brosur (y)**: `{y_opt:.2f}` unit")
-    st.write(f"**Keuntungan Maksimum**: `Rp {z_opt:,.0f}`")
-    st.write(f"**Total Kapasitas Tenaga Kerja**: `{total_tenaga_kerja} jam` dari `{jumlah_karyawan}` orang")
+    st.success("✅ Solusi Optimal Ditemukan!")
+    st.write(f"**Jumlah Banner (x):** {x_opt:.2f} unit")
+    st.write(f"**Jumlah Brosur (y):** {y_opt:.2f} unit")
+    st.write(f"**Total Keuntungan Maksimum:** Rp {z_opt:,.0f}")
 
-    # Area Feasible
-    st.subheader("📐 Grafik Area Feasible")
-    x_vals = np.linspace(0, 100, 400)
-    y_mesin = (kap_mesin - m_x * x_vals) / m_y
-    y_bahan = (kap_bahan - b_x * x_vals) / b_y
-    y_tenaga = (total_tenaga_kerja - t_x * x_vals) / t_y
-    y_feasible = np.minimum(np.minimum(y_mesin, y_bahan), y_tenaga)
-
+    # Visualisasi Feasible Region
+    st.subheader("📊 Grafik Daerah Feasible & Titik Optimum")
     fig, ax = plt.subplots()
-    ax.plot(x_vals, y_mesin, label="Mesin")
-    ax.plot(x_vals, y_bahan, label="Bahan Baku")
-    ax.plot(x_vals, y_tenaga, label="Tenaga Kerja")
-    ax.fill_between(x_vals, 0, y_feasible, where=(y_feasible >= 0), alpha=0.3, color='gray', label="Feasible Area")
-    ax.plot(x_opt, y_opt, 'ro', label="Solusi Optimal")
 
+    x_vals = np.linspace(0, 100, 400)
+    y1 = (150 - 1.0 * x_vals) / 0.5  # Mesin
+    y2 = (200 - 2.0 * x_vals) / 2.0  # Bahan
+    y3 = (200 - 2.0 * x_vals) / 1.0  # Tenaga kerja
+
+    ax.plot(x_vals, y1, label="Mesin")
+    ax.plot(x_vals, y2, label="Bahan Baku")
+    ax.plot(x_vals, y3, label="Tenaga Kerja")
+
+    y_max = np.minimum(np.minimum(y1, y2), y3)
+    y_max = np.where(y_max < 0, 0, y_max)
+    ax.fill_between(x_vals, 0, y_max, alpha=0.3)
+
+    ax.plot(x_opt, y_opt, "ro", label="Solusi Optimal")
+    ax.set_xlim(0, max(x_opt, 100))
+    ax.set_ylim(0, max(y_opt, 120))
     ax.set_xlabel("Banner (x)")
     ax.set_ylabel("Brosur (y)")
-    ax.set_xlim(0, max(x_vals))
-    ax.set_ylim(0, max(y_feasible[~np.isnan(y_feasible)]) + 10)
+    ax.set_title("Daerah Feasible dan Titik Optimal")
     ax.legend()
     st.pyplot(fig)
 
-    # Grafik Keuangan
-    st.subheader("💰 Grafik Keuangan Mingguan")
-    pendapatan = x_opt * profit_x + y_opt * profit_y
-    biaya_var = x_opt * cost_x + y_opt * cost_y
-    total_biaya = biaya_var + fixed_cost
-    laba = pendapatan - total_biaya
+    # Visualisasi Produksi Optimal
+    st.subheader("📦 Diagram Produksi Optimal")
+    st.bar_chart({"Produk": [x_opt, y_opt]}, labels={"x": "Produk", "y": "Jumlah"}, use_container_width=True)
 
-    fig2, ax2 = plt.subplots()
-    labels = ['Pendapatan', 'Biaya Variabel', 'Biaya Tetap', 'Laba Bersih']
-    values = [pendapatan, biaya_var, fixed_cost, laba]
-    colors = ['green', 'orange', 'red', 'blue']
-    bars = ax2.bar(labels, values, color=colors)
-    for bar in bars:
-        h = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2, h + 50000, f"Rp {h:,.0f}", ha='center')
-    ax2.set_ylabel("Rupiah (Rp)")
-    ax2.set_title("Keuangan Mingguan")
-    st.pyplot(fig2)
+    # Pemanfaatan Sumber Daya
+    st.subheader("🧰 Pemanfaatan Sumber Daya")
+    waktu_mesin = 1.0 * x_opt + 0.5 * y_opt
+    bahan_baku = 2.0 * x_opt + 2.0 * y_opt
+    tenaga_kerja = 2.0 * x_opt + 1.0 * y_opt
+
+    st.write(f"- Total Waktu Mesin Digunakan: {waktu_mesin:.2f} jam / {max_mesin} jam")
+    st.write(f"- Total Bahan Baku Digunakan: {bahan_baku:.2f} unit / {max_bahan} unit")
+    st.write(f"- Total Tenaga Kerja Digunakan: {tenaga_kerja:.2f} jam / {max_tenaga} jam")
+
+    # Estimasi kebutuhan tenaga kerja
+    st.subheader("👷 Estimasi Jumlah Tenaga Kerja")
+    jam_kerja_per_orang = 110  # asumsikan 110 jam/orang/bulan
+    kebutuhan_orang = np.ceil(tenaga_kerja / jam_kerja_per_orang)
+    st.write(f"🧑‍🔧 Total jam kerja: {tenaga_kerja:.2f} jam → Dibutuhkan minimal **{int(kebutuhan_orang)} orang tenaga kerja**")
 
 else:
-    st.error("❌ Gagal menemukan solusi optimal.")
+    st.error("❌ Optimasi gagal. Silakan cek kembali parameter atau batasan kendala.")
