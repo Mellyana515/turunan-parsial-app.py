@@ -1,118 +1,92 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.express as px
 from scipy.optimize import linprog
+import matplotlib.pyplot as plt
 
-# Konfigurasi halaman
-st.set_page_config(page_title="Optimasi Produksi Banner & Brosur", layout="centered")
-st.title("📈 Optimasi Produksi Banner dan Brosur")
+# Judul aplikasi
+st.title("📦 Optimasi Produksi Banner dan Brosur")
 
-st.markdown("""
-Aplikasi ini menyelesaikan masalah Linear Programming (LP) untuk menentukan jumlah produksi optimal **banner** dan **brosur** agar **keuntungan maksimal** tercapai berdasarkan keterbatasan sumber daya.
-""")
+st.markdown("Aplikasi ini menggunakan metode Linear Programming untuk mencari jumlah produksi yang memaksimalkan keuntungan berdasarkan batasan sumber daya.")
 
-# Parameter produksi dan keuntungan
-profit_x = 90000  # Banner
-profit_y = 20000  # Brosur
+# === Sidebar: Parameter Produksi ===
+st.sidebar.header("🔧 Parameter Produksi per Unit")
 
-# Kapasitas sumber daya
-max_mesin = 150
-max_bahan = 200
-max_tenaga = 200
+# Keuntungan per unit
+profit_banner = st.sidebar.number_input("Keuntungan per Banner (Rp)", value=90000)
+profit_brosur = st.sidebar.number_input("Keuntungan per Brosur (Rp)", value=20000)
 
-# Matriks kendala
+# Waktu mesin per unit
+time_banner = st.sidebar.number_input("Waktu Mesin per Banner (jam)", value=1.0)
+time_brosur = st.sidebar.number_input("Waktu Mesin per Brosur (jam)", value=0.5)
+
+# Bahan baku per unit
+bahan_banner = st.sidebar.number_input("Bahan Baku per Banner (unit)", value=2.0)
+bahan_brosur = st.sidebar.number_input("Bahan Baku per Brosur (unit)", value=2.0)
+
+# Tenaga kerja per unit
+tenaga_banner = st.sidebar.number_input("Tenaga Kerja per Banner (jam)", value=2.0)
+tenaga_brosur = st.sidebar.number_input("Tenaga Kerja per Brosur (jam)", value=1.0)
+
+# === Sidebar: Kapasitas Sumber Daya ===
+st.sidebar.header("📊 Kapasitas Sumber Daya per Bulan")
+
+mesin = st.sidebar.number_input("Total Kapasitas Mesin (jam)", value=150)
+bahan = st.sidebar.number_input("Total Kapasitas Bahan Baku (unit)", value=200)
+tenaga = st.sidebar.number_input("Total Kapasitas Tenaga Kerja (jam)", value=200)
+
+# === Model Matematika ===
+# Fungsi Objektif: Maksimalkan Z = profit_banner * x + profit_brosur * y
+c = [-profit_banner, -profit_brosur]  # pakai negatif karena linprog adalah minimisasi
+
+# Kendala:
+# A_ub * [x, y] <= b_ub
 A = [
-    [1.0, 0.5],   # Mesin
-    [2.0, 2.0],   # Bahan baku
-    [2.0, 1.0]    # Tenaga kerja
+    [time_banner, time_brosur],        # waktu mesin
+    [bahan_banner, bahan_brosur],      # bahan baku
+    [tenaga_banner, tenaga_brosur]     # tenaga kerja
 ]
-b = [max_mesin, max_bahan, max_tenaga]
 
-# Fungsi objektif (negatif untuk maksimasi)
-c = [-profit_x, -profit_y]
+b = [mesin, bahan, tenaga]
 
-# Batas variabel
-x_bounds = (0, None)
-y_bounds = (0, None)
+# Batasan x dan y ≥ 0
+bounds = [(0, None), (0, None)]
 
-# Optimasi Linear Programming
-res = linprog(c, A_ub=A, b_ub=b, bounds=[x_bounds, y_bounds], method="highs")
+# === Solusi Optimasi ===
+res = linprog(c, A_ub=A, b_ub=b, bounds=bounds, method='highs')
+
+st.header("📈 Hasil Optimasi Produksi")
 
 if res.success:
-    x_opt = res.x[0]
-    y_opt = res.x[1]
-    z_opt = -res.fun
+    x_opt, y_opt = res.x
+    keuntungan = -res.fun
 
-    st.success("✅ Solusi Optimal Ditemukan!")
-    st.write(f"**Jumlah Banner (x):** {x_opt:.2f} unit")
-    st.write(f"**Jumlah Brosur (y):** {y_opt:.2f} unit")
-    st.write(f"**Total Keuntungan Maksimum:** Rp {z_opt:,.0f}")
+    st.success("Optimasi berhasil ditemukan!")
+    st.write(f"📌 Produksi optimal Banner (x): *{x_opt:.2f} unit*")
+    st.write(f"📌 Produksi optimal Brosur (y): *{y_opt:.2f} unit*")
+    st.write(f"💰 Total Keuntungan Maksimum: *Rp {keuntungan:,.0f}*")
 
-    # Visualisasi Feasible Region (matplotlib)
-    st.subheader("📊 Grafik Daerah Feasible & Titik Optimum")
-    fig, ax = plt.subplots()
+    # === Visualisasi: Produksi ===
+    st.subheader("📊 Visualisasi Jumlah Produksi Optimal")
+    fig1, ax1 = plt.subplots()
+    ax1.bar(["Banner", "Brosur"], [x_opt, y_opt], color=["skyblue", "lightgreen"])
+    ax1.set_ylabel("Jumlah Produksi (unit)")
+    st.pyplot(fig1)
 
-    x_vals = np.linspace(0, 100, 400)
-    y1 = (max_mesin - 1.0 * x_vals) / 0.5  # Mesin
-    y2 = (max_bahan - 2.0 * x_vals) / 2.0  # Bahan
-    y3 = (max_tenaga - 2.0 * x_vals) / 1.0  # Tenaga kerja
+    # === Visualisasi: Penggunaan Sumber Daya ===
+    st.subheader("⚙ Pemanfaatan Sumber Daya")
+    digunakan = [
+        x_opt * time_banner + y_opt * time_brosur,
+        x_opt * bahan_banner + y_opt * bahan_brosur,
+        x_opt * tenaga_banner + y_opt * tenaga_brosur
+    ]
+    total = [mesin, bahan, tenaga]
+    label = ["Waktu Mesin", "Bahan Baku", "Tenaga Kerja"]
 
-    ax.plot(x_vals, y1, label="Mesin")
-    ax.plot(x_vals, y2, label="Bahan Baku")
-    ax.plot(x_vals, y3, label="Tenaga Kerja")
-
-    y_max = np.minimum(np.minimum(y1, y2), y3)
-    y_max = np.where(y_max < 0, 0, y_max)
-    ax.fill_between(x_vals, 0, y_max, alpha=0.3)
-
-    ax.plot(x_opt, y_opt, "ro", label="Solusi Optimal")
-    ax.set_xlim(0, max(x_opt, 100))
-    ax.set_ylim(0, max(y_opt, 120))
-    ax.set_xlabel("Banner (x)")
-    ax.set_ylabel("Brosur (y)")
-    ax.set_title("Daerah Feasible dan Titik Optimal")
-    ax.legend()
-    st.pyplot(fig)
-
-    # Visualisasi Produksi Optimal (Plotly)
-    st.subheader("📦 Diagram Produksi Optimal (Interaktif)")
-    df_prod = pd.DataFrame({
-        "Produk": ["Banner", "Brosur"],
-        "Jumlah Produksi": [x_opt, y_opt]
-    })
-
-    fig_bar = px.bar(
-        df_prod,
-        x="Produk",
-        y="Jumlah Produksi",
-        color="Produk",
-        text="Jumlah Produksi",
-        title="Diagram Produksi Optimal",
-        labels={"Jumlah Produksi": "Unit"},
-        color_discrete_sequence=["#636EFA", "#EF553B"]
-    )
-
-    fig_bar.update_traces(texttemplate='%{text:.2f}', textposition='outside')
-    fig_bar.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
-    st.plotly_chart(fig_bar, use_container_width=True)
-
-    # Pemanfaatan sumber daya
-    st.subheader("🧰 Pemanfaatan Sumber Daya")
-    waktu_mesin = 1.0 * x_opt + 0.5 * y_opt
-    bahan_baku = 2.0 * x_opt + 2.0 * y_opt
-    tenaga_kerja = 2.0 * x_opt + 1.0 * y_opt
-
-    st.write(f"- Total Waktu Mesin: {waktu_mesin:.2f} jam / {max_mesin} jam")
-    st.write(f"- Total Bahan Baku: {bahan_baku:.2f} unit / {max_bahan} unit")
-    st.write(f"- Total Tenaga Kerja: {tenaga_kerja:.2f} jam / {max_tenaga} jam")
-
-    # Estimasi jumlah tenaga kerja
-    st.subheader("👷 Estimasi Jumlah Tenaga Kerja")
-    jam_kerja_per_orang = 110
-    kebutuhan_orang = np.ceil(tenaga_kerja / jam_kerja_per_orang)
-    st.write(f"🧑‍🔧 Total jam kerja: {tenaga_kerja:.2f} jam → Dibutuhkan minimal **{int(kebutuhan_orang)} orang tenaga kerja**")
+    fig2, ax2 = plt.subplots()
+    ax2.barh(label, total, color="gray", alpha=0.3, label="Kapasitas")
+    ax2.barh(label, digunakan, color="orange", label="Terpakai")
+    ax2.legend()
+    st.pyplot(fig2)
 
 else:
-    st.error("❌ Optimasi gagal. Silakan cek kembali parameter atau batasan kendala.")
+    st.error("Gagal menyelesaikan optimasi. Silakan cek kembali input parameter.")
